@@ -6,6 +6,8 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 // Structure for every node
 typedef struct node{
@@ -19,10 +21,16 @@ typedef struct node{
 	int CandidatesVotes[100];
 }node_t;
 
-struct threadArgs{
-	node_t* n;
-	char *command;
+// struct threadArgs{
+// 	node_t* n;
+// 	char *command;
+// 	int socket;
+// };
+
+struct serverArgs{
 	int socket;
+	struct sockaddr_in clientAddress;
+	node_t* n;
 };
 
 int makeargv(const char*s, const char *delimiters, char ***argvp){

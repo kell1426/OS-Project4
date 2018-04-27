@@ -28,15 +28,12 @@
 
 void DAGCreator(node_t* n, char *filename);
 void parseInputLine(char *buf, node_t* n, int line);
-void returnWinner(void* args);
-void countVotes(void* args);
-void openPolls(void* args);
-void addVotes(void* args);
-void removeVotes(void* args);
-void closePolls(void* args);
-
-
-
+void returnWinner(node_t* n, char* command);
+void countVotes(node_t* n, char* command);
+void openPolls(node_t* n, char* command);
+void addVotes(node_t* n, char* command);
+void removeVotes(node_t* n, char* command);
+void closePolls(node_t* n, char* command);
 
 void parseInputLine(char *buf, node_t* n, int line)
 {
@@ -102,48 +99,87 @@ void DAGCreator(node_t* n, char *filename)
   }
 }
 
-void returnWinner(void* args)
+void serverFunction(void* args)
 {
-  struct threadArgs *realArgs = args;
+  struct serverArgs *realArgs = args;
+  int clientSock = realArgs->socket;
+  struct sockaddr_in clientAddress = realArgs->clientAddress;
+  node_t* n = realArgs->n;
+  printf("Connection initiated from client at %s:%d\n", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
+  while(1)
+  {
+    char *buffer = calloc(256, 1);
+    int num = recv(clientSock, buffer, 256, 0);
+    if(strcmp(buffer, "END") == 0)
+    {
+      break;
+    }
+    printf("Request received from client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
+    printf(", %s\n", buffer);
+    if(buffer[0] == 'R' && buffer[1] == 'W')
+    {
+      returnWinner(n, buffer);
+      send(clientSock, "Returning Winner\n", 256, 0);
+    }
+    else if(buffer[0] == 'C' && buffer[1] == 'V')
+    {
+      countVotes(n, buffer);
+    }
+    else if(buffer[0] == 'O' && buffer[1] == 'P')
+    {
+      openPolls(n, buffer);
+      send(clientSock, "Opening Polls\n", 256, 0);
+    }
+    else if(buffer[0] == 'A' && buffer[1] == 'V')
+    {
+      addVotes(n, buffer);
+    }
+    else if(buffer[0] == 'R' && buffer[1] == 'V')
+    {
+      removeVotes(n, buffer);
+    }
+    else if(buffer[0] == 'C' && buffer[1] == 'P')
+    {
+      closePolls(n, buffer);
+    }
+    //free(buffer);
+  }
+  close(clientSock);
+  printf("Closed connection with client at %s:%d\n", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
+}
+
+void returnWinner(node_t* n, char* command)
+{
   printf("Returning Winner\n");
-  int clientSock =  realArgs->socket;
-  send(clientSock, "Returning Winner\n", 256, 0);
   return;
 }
 
-void countVotes(void* args)
+void countVotes(node_t* n, char* command)
 {
-  struct threadArgs *realArgs = args;
   printf("Counting Votes\n");
   return;
 }
 
-void openPolls(void* args)
+void openPolls(node_t* n, char* command)
 {
-  struct threadArgs *realArgs = args;
   printf("Opening Polls\n");
-  int clientSock =  realArgs->socket;
-  send(clientSock, "Opening Polls\n", 256, 0);
   return;
 }
 
-void addVotes(void* args)
+void addVotes(node_t* n, char* command)
 {
-  struct threadArgs *realArgs = args;
   printf("Adding Votes\n");
   return;
 }
 
-void removeVotes(void* args)
+void removeVotes(node_t* n, char* command)
 {
-  struct threadArgs *realArgs = args;
   printf("Removing Votes\n");
   return;
 }
 
-void closePolls(void* args)
+void closePolls(node_t* n, char* command)
 {
-  struct threadArgs *realArgs = args;
   printf("Closing Polls\n");
   return;
 }
@@ -184,60 +220,12 @@ int main(int argc, char **argv){
     socklen_t size = sizeof(struct sockaddr_in);
 
     int clientSock = accept(serverSock, (struct sockaddr *) &clientAddress, &size);
-    printf("Connection initiated from client at %s:%d\n", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
-
-
-    int readNum = 0;
-    while(1)
-    {
-      char *buffer = calloc(256, 1);
-      int num = recv(clientSock, buffer, 256, 0);
-      if(strcmp(buffer, "END") == 0)
-      {
-        break;
-      }
-      printf("Request received from client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
-      printf(", %s\n", buffer);
-      struct threadArgs* args = malloc(sizeof(struct threadArgs));
-      args->n = mainnodes;
-      args->command = buffer;
-      args->socket = clientSock;
-      if(buffer[0] == 'R' && buffer[1] == 'W')
-      {
-        pthread_t thread;
-        pthread_create(&thread, NULL, returnWinner, (void*) args);
-      }
-      else if(buffer[0] == 'C' && buffer[1] == 'V')
-      {
-        pthread_t thread;
-        pthread_create(&thread, NULL, countVotes, (void*) args);
-      }
-      else if(buffer[0] == 'O' && buffer[1] == 'P')
-      {
-        pthread_t thread;
-        pthread_create(&thread, NULL, openPolls, (void*) args);
-      }
-      else if(buffer[0] == 'A' && buffer[1] == 'V')
-      {
-        pthread_t thread;
-        pthread_create(&thread, NULL, addVotes, (void*) args);
-      }
-      else if(buffer[0] == 'R' && buffer[1] == 'V')
-      {
-        pthread_t thread;
-        pthread_create(&thread, NULL, removeVotes, (void*) args);
-      }
-      else if(buffer[0] == 'C' && buffer[1] == 'P')
-      {
-        pthread_t thread;
-        pthread_create(&thread, NULL, closePolls, (void*) args);
-      }
-      //free(buffer);
-    }
-
-
-    close(clientSock);
-    printf("Closed connection with client at %s:%d\n", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
+    pthread_t thread;
+    struct serverArgs* args = malloc(sizeof(struct serverArgs));
+    args->socket = clientSock;
+    args->clientAddress = clientAddress;
+    args->n = mainnodes;
+    pthread_create(&thread, NULL, serverFunction, (void*) args);
   }
 
   close(serverSock);
