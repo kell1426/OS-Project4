@@ -132,7 +132,18 @@ int main(int argc, char **argv){
     printf("Connection initiated from client at %s:%d\n", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
 
 
-
+    int readNum = 0;
+    while(1)
+    {
+      char *buffer = calloc(256, 1);
+      int num = recv(clientSock, buffer, 256, 0);
+      if(strcmp(buffer, "END") == 0)
+      {
+        break;
+      }
+      printf("%s\n", buffer);
+      free(buffer);
+    }
 
 
 
