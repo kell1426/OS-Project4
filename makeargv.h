@@ -19,6 +19,12 @@ typedef struct node{
 	int CandidatesVotes[100];
 }node_t;
 
+struct threadArgs{
+	node_t* n;
+	char *command;
+	int socket;
+};
+
 int makeargv(const char*s, const char *delimiters, char ***argvp){
 
 	int error;

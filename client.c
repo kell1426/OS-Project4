@@ -221,9 +221,11 @@ int main(int argc, char **argv){
           }
           strcat(formattedCommand, "\0");
         }
-        //send(sock, formattedCommand, sizeof(formattedCommand), 0);
+        printf("Sending request to server: %s\n", formattedCommand);
         send(sock, formattedCommand, 256, 0);
-        printf("%s\n", formattedCommand);
+        char *response = calloc(256, 1);
+        recv(sock, response, 256, 0);
+        printf("%s\n", response);
         free(formattedCommand);
         if(command == 4 || command == 5)
         {

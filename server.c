@@ -28,6 +28,15 @@
 
 void DAGCreator(node_t* n, char *filename);
 void parseInputLine(char *buf, node_t* n, int line);
+void returnWinner(void* args);
+void countVotes(void* args);
+void openPolls(void* args);
+void addVotes(void* args);
+void removeVotes(void* args);
+void closePolls(void* args);
+
+
+
 
 void parseInputLine(char *buf, node_t* n, int line)
 {
@@ -93,6 +102,52 @@ void DAGCreator(node_t* n, char *filename)
   }
 }
 
+void returnWinner(void* args)
+{
+  struct threadArgs *realArgs = args;
+  printf("Returning Winner\n");
+  int clientSock =  realArgs->socket;
+  send(clientSock, "Returning Winner\n", 256, 0);
+  return;
+}
+
+void countVotes(void* args)
+{
+  struct threadArgs *realArgs = args;
+  printf("Counting Votes\n");
+  return;
+}
+
+void openPolls(void* args)
+{
+  struct threadArgs *realArgs = args;
+  printf("Opening Polls\n");
+  int clientSock =  realArgs->socket;
+  send(clientSock, "Opening Polls\n", 256, 0);
+  return;
+}
+
+void addVotes(void* args)
+{
+  struct threadArgs *realArgs = args;
+  printf("Adding Votes\n");
+  return;
+}
+
+void removeVotes(void* args)
+{
+  struct threadArgs *realArgs = args;
+  printf("Removing Votes\n");
+  return;
+}
+
+void closePolls(void* args)
+{
+  struct threadArgs *realArgs = args;
+  printf("Closing Polls\n");
+  return;
+}
+
 
 
 int main(int argc, char **argv){
@@ -141,10 +196,44 @@ int main(int argc, char **argv){
       {
         break;
       }
-      printf("%s\n", buffer);
-      free(buffer);
+      printf("Request received from client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
+      printf(", %s\n", buffer);
+      struct threadArgs* args = malloc(sizeof(struct threadArgs));
+      args->n = mainnodes;
+      args->command = buffer;
+      args->socket = clientSock;
+      if(buffer[0] == 'R' && buffer[1] == 'W')
+      {
+        pthread_t thread;
+        pthread_create(&thread, NULL, returnWinner, (void*) args);
+      }
+      else if(buffer[0] == 'C' && buffer[1] == 'V')
+      {
+        pthread_t thread;
+        pthread_create(&thread, NULL, countVotes, (void*) args);
+      }
+      else if(buffer[0] == 'O' && buffer[1] == 'P')
+      {
+        pthread_t thread;
+        pthread_create(&thread, NULL, openPolls, (void*) args);
+      }
+      else if(buffer[0] == 'A' && buffer[1] == 'V')
+      {
+        pthread_t thread;
+        pthread_create(&thread, NULL, addVotes, (void*) args);
+      }
+      else if(buffer[0] == 'R' && buffer[1] == 'V')
+      {
+        pthread_t thread;
+        pthread_create(&thread, NULL, removeVotes, (void*) args);
+      }
+      else if(buffer[0] == 'C' && buffer[1] == 'P')
+      {
+        pthread_t thread;
+        pthread_create(&thread, NULL, closePolls, (void*) args);
+      }
+      //free(buffer);
     }
-
 
 
     close(clientSock);
