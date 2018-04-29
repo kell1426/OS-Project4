@@ -33,8 +33,9 @@ char* returnWinner(node_t* n, char* command);
 char* countVotes(node_t* n, char* command);
 void openPolls(node_t* n, node_t* node);
 void addVotes(node_t* n, char* command);
-void removeVotes(node_t* n, char* command);
+int removeVotes(node_t* n, char* command);
 void closePolls(node_t* n, node_t* node);
+void aggregateVotes(node_t* n, node_t* root);
 
 void parseInputLine(char *buf, node_t* n, int line)
 {
@@ -98,6 +99,44 @@ void DAGCreator(node_t* n, char *filename)
       line++;
     }
   }
+}
+void aggregateVotes(node_t* node, node_t* root)
+{
+  if(node->num_children > 0)
+  {
+    int i;
+    for(i = 0; i < node->num_children; i++)
+    {
+      node_t* child = findnode(root, node->childName[i]);
+      aggregateVotes(child, root);
+    }
+  }
+  node_t* parent = findnode(root, node->parentName);
+  int i = 0;
+  while(node->Candidates[i][0] != 0)
+  {
+    int j = 0;
+    int match = 0;
+    while(parent->Candidates[j][0] != 0)
+    {
+      if(strcmp(node->Candidates[i], parent->Candidates[j]) == 0)
+      {
+        match = 1;
+        break;
+      }
+      j++;
+    }
+    if(match == 1)
+    {
+      parent->CandidatesVotes[j] += node->CandidatesVotes[i];
+    }
+    else
+    {
+      strcpy(parent->Candidates[j], node->Candidates[i]);
+      parent->CandidatesVotes[j] = node->CandidatesVotes[i];
+    }
+  }
+  return;
 }
 
 void serverFunction(void* args)
@@ -195,7 +234,42 @@ void serverFunction(void* args)
     }
     else if(buffer[0] == 'R' && buffer[1] == 'V')
     {
-      removeVotes(n, buffer);
+      sem_wait(&sem);
+      char **strings;
+      char *response = calloc(256, 1);
+      int tokens = makeargv(buffer, ";", &strings);
+      node_t* node = findnode(n, strings[1]);
+      if(node->isLeafNode == 0)
+      {
+        strcpy(response, "NL;");
+        strcat(response, node->name);
+        strcat(response, "\0");
+      }
+      else if(node->pollsOpen == false)
+      {
+        strcpy(response, "RC;");
+        strcat(response, node->name);
+        strcat(response, "\0");
+      }
+      else
+      {
+        int illegal = removeVotes(node, strings[2]);
+        if(illegal == -1)
+        {
+          strcpy(response, "IS;");
+          strcat(response, node->name);
+          strcat(response, "\0");
+        }
+        else
+        {
+          strcpy(response, "SC;\0");
+        }
+      }
+      printf("Sending response to client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
+      printf(", %s\n", response);
+      send(clientSock, response, 256, 0);
+      free(response);
+      sem_post(&sem);
     }
     else if(buffer[0] == 'C' && buffer[1] == 'P')
     {
@@ -243,6 +317,7 @@ char* returnWinner(node_t* n, char* command)
     }
     i++;
   }
+  aggregateVotes(n, n);
   int highestVotes = 0;
   char* winner = calloc(256, 1);
   i = 1;
@@ -352,10 +427,54 @@ void addVotes(node_t* n, char* command)
   return;
 }
 
-void removeVotes(node_t* n, char* command)
+int removeVotes(node_t* n, char* command)
 {
-  printf("Removing Votes\n");
-  return;
+  char** strings;
+  int tokens = makeargv(command, ",", &strings);
+  int i;
+  for(i = 0; i < tokens; i++)
+  {
+    char** strings2;
+    int tokens2 = makeargv(strings[i], ":", &strings2);
+    int match = 0;
+    int j = 0;
+    while(n->Candidates[j][0] != 0)
+    {
+      if(strcmp(n->Candidates[j], strings2[0]) == 0)
+      {
+        match = 1;
+        break;
+      }
+      j++;
+    }
+    if(match == 1)
+    {
+      if(n->CandidatesVotes[j] < atoi(strings2[1]))
+      {
+        return -1;
+      }
+    }
+    else
+    {
+      return -1;
+    }
+  }
+  for(i = 0; i < tokens; i++)
+  {
+    char** strings2;
+    int tokens2 = makeargv(strings[i], ":", &strings2);
+    int j = 0;
+    while(n->Candidates[j][0] != 0)
+    {
+      if(strcmp(n->Candidates[j], strings2[0]) == 0)
+      {
+        break;
+      }
+      j++;
+    }
+    n->CandidatesVotes[j] -= atoi(strings2[1]);
+  }
+  return 0;
 }
 
 void closePolls(node_t* n, node_t* node)

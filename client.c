@@ -93,6 +93,7 @@ char* commandFormater(int command, char *line)
       tokens = makeargv(line, " ", &strings);
       strcpy(buf, "RV;");
       strcat(buf, strings[1]);
+      strcat(buf, ";");
       break;
     case 6:
       tokens = makeargv(line, " ", &strings);
