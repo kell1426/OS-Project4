@@ -119,21 +119,25 @@ void serverFunction(void* args)
     printf(", %s\n", buffer);
     if(buffer[0] == 'R' && buffer[1] == 'W')
     {
+      sem_wait(&sem);
       char* response = NULL;
       response = returnWinner(n, buffer);
       printf("Sending response to client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
       printf(", %s\n", response);
       send(clientSock, response, 256, 0);
       free(response);
+      sem_post(&sem);
     }
     else if(buffer[0] == 'C' && buffer[1] == 'V')
     {
+      sem_wait(&sem);
       char* response = NULL;
       response = countVotes(n, buffer);
       printf("Sending response to client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
       printf(", %s\n", response);
       send(clientSock, response, 256, 0);
       free(response);
+      sem_post(&sem);
     }
     else if(buffer[0] == 'O' && buffer[1] == 'P')
     {
@@ -153,15 +157,41 @@ void serverFunction(void* args)
         //printf("Exited recursion\n");
         strcpy(response, "SC;\0");
       }
-      sem_post(&sem);
       printf("Sending response to client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
       printf(", %s\n", response);
       send(clientSock, response, 256, 0);
       free(response);
+      sem_post(&sem);
     }
     else if(buffer[0] == 'A' && buffer[1] == 'V')
     {
-      addVotes(n, buffer);
+      sem_wait(&sem);
+      char **strings;
+      char *response = calloc(256, 1);
+      int tokens = makeargv(buffer, ";", &strings);
+      node_t* node = findnode(n, strings[1]);
+      if(node->isLeafNode == 0)
+      {
+        strcpy(response, "NL;");
+        strcat(response, node->name);
+        strcat(response, "\0");
+      }
+      else if(node->pollsOpen == false)
+      {
+        strcpy(response, "RC;");
+        strcat(response, node->name);
+        strcat(response, "\0");
+      }
+      else
+      {
+        addVotes(node, strings[2]);
+        strcpy(response, "SC;\0");
+      }
+      printf("Sending response to client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
+      printf(", %s\n", response);
+      send(clientSock, response, 256, 0);
+      free(response);
+      sem_post(&sem);
     }
     else if(buffer[0] == 'R' && buffer[1] == 'V')
     {
@@ -185,11 +215,11 @@ void serverFunction(void* args)
         //printf("Exited recursion\n");
         strcpy(response, "SC;\0");
       }
-      sem_post(&sem);
       printf("Sending response to client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
       printf(", %s\n", response);
       send(clientSock, response, 256, 0);
       free(response);
+      sem_post(&sem);
     }
     //free(buffer);
   }
@@ -200,7 +230,6 @@ void serverFunction(void* args)
 char* returnWinner(node_t* n, char* command)
 {
   //printf("Returning Winner\n");
-  sem_wait(&sem);
   int i = 0;
   char* response = calloc(256, sizeof(char));
   while(n[i].name != '\0')
@@ -210,7 +239,6 @@ char* returnWinner(node_t* n, char* command)
       strcpy(response, "RO;");
       strcat(response, n[i].name);
       strcat(response, "\0");
-      sem_post(&sem);
       return response;
     }
     i++;
@@ -236,14 +264,12 @@ char* returnWinner(node_t* n, char* command)
   strcat(winner, "\0");
   strcpy(response, "SC;");
   strcat(response, winner);
-  sem_post(&sem);
   return response;
 }
 
 char* countVotes(node_t* n, char* command)
 {
   //printf("Counting Votes\n");
-  sem_wait(&sem);
   char* response = calloc(256, sizeof(char));
   char **strings;
   int tokens = makeargv(command, ";", &strings);
@@ -252,7 +278,6 @@ char* countVotes(node_t* n, char* command)
   {
     //Return no votes error code.
     strcpy(response, "No votes\0");
-    sem_post(&sem);
     return response;
   }
   int highestVotes = 0;
@@ -276,7 +301,6 @@ char* countVotes(node_t* n, char* command)
   strcat(winner, "\0");
   strcpy(response, "SC;");
   strcat(response, winner);
-  sem_post(&sem);
   return response;
 }
 
@@ -297,7 +321,34 @@ void openPolls(node_t* n, node_t* node)
 
 void addVotes(node_t* n, char* command)
 {
-  printf("Adding Votes\n");
+  char** strings;
+  int tokens = makeargv(command, ",", &strings);
+  int i;
+  for(i = 0; i < tokens; i++)
+  {
+    char** strings2;
+    int tokens2 = makeargv(strings[i], ":", &strings2);
+    int match = 0;
+    int j = 0;
+    while(n->Candidates[j][0] != 0)
+    {
+      if(strcmp(n->Candidates[j], strings2[0]) == 0)
+      {
+        match = 1;
+        break;
+      }
+      j++;
+    }
+    if(match == 1)
+    {
+      n->CandidatesVotes[j] += atoi(strings2[1]);
+    }
+    else
+    {
+        strcpy(n->Candidates[j], strings2[0]);
+        n->CandidatesVotes[j] = atoi(strings2[1]);
+    }
+  }
   return;
 }
 
@@ -338,6 +389,14 @@ int main(int argc, char **argv){
   {
     mainnodes[i].pollsOpen = false;
     mainnodes[i].pollsClosed = false;
+    if(mainnodes[i].num_children == 0)
+    {
+      mainnodes[i].isLeafNode = 1;
+    }
+    else
+    {
+      mainnodes[i].isLeafNode = 0;
+    }
     int j;
     mainnodes[i].Candidates = calloc(MAX_CANDIDATES, sizeof(char*));
     for(j = 0; j < MAX_CANDIDATES; j++)

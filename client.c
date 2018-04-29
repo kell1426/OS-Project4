@@ -87,6 +87,7 @@ char* commandFormater(int command, char *line)
       tokens = makeargv(line, " ", &strings);
       strcpy(buf, "AV;");
       strcat(buf, strings[1]);
+      strcat(buf, ";");
       break;
     case 5:
       tokens = makeargv(line, " ", &strings);
@@ -210,7 +211,10 @@ int main(int argc, char **argv){
           {
             if(CandidatesVotes[j] != 0)
             {
-              strcat(formattedCommand, ";");
+              if(j > 0)
+              {
+                strcat(formattedCommand, ",");
+              }
               strcat(formattedCommand, Candidates[j]);
               strcat(formattedCommand, ":");
               char buffer[3];
