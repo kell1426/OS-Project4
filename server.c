@@ -25,15 +25,16 @@
 
 #define MAX_NODES 100
 #define MAX_CANDIDATES 100
+sem_t* sem;
 
 void DAGCreator(node_t* n, char *filename);
 void parseInputLine(char *buf, node_t* n, int line);
-void returnWinner(node_t* n, char* command);
-void countVotes(node_t* n, char* command);
-void openPolls(node_t* n, char* command);
+char* returnWinner(node_t* n, char* command);
+char* countVotes(node_t* n, char* command);
+void openPolls(node_t* n, node_t* node);
 void addVotes(node_t* n, char* command);
 void removeVotes(node_t* n, char* command);
-void closePolls(node_t* n, char* command);
+void closePolls(node_t* n, node_t* node);
 
 void parseInputLine(char *buf, node_t* n, int line)
 {
@@ -118,17 +119,45 @@ void serverFunction(void* args)
     printf(", %s\n", buffer);
     if(buffer[0] == 'R' && buffer[1] == 'W')
     {
-      returnWinner(n, buffer);
-      send(clientSock, "Returning Winner\n", 256, 0);
+      char* response = NULL;
+      response = returnWinner(n, buffer);
+      printf("Sending response to client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
+      printf(", %s\n", response);
+      send(clientSock, response, 256, 0);
+      free(response);
     }
     else if(buffer[0] == 'C' && buffer[1] == 'V')
     {
-      countVotes(n, buffer);
+      char* response = NULL;
+      response = countVotes(n, buffer);
+      printf("Sending response to client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
+      printf(", %s\n", response);
+      send(clientSock, response, 256, 0);
+      free(response);
     }
     else if(buffer[0] == 'O' && buffer[1] == 'P')
     {
-      openPolls(n, buffer);
-      send(clientSock, "Opening Polls\n", 256, 0);
+      sem_wait(&sem);
+      char **strings;
+      char *response = calloc(256, 1);
+      int tokens = makeargv(buffer, ";", &strings);
+      node_t* node = findnode(n, strings[1]);
+      if(node->pollsOpen == true)
+      {
+        strcpy(response, "PF;\0");
+      }
+      else
+      {
+        //printf("Entering recursion\n");
+        openPolls(n, node);
+        //printf("Exited recursion\n");
+        strcpy(response, "SC;\0");
+      }
+      sem_post(&sem);
+      printf("Sending response to client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
+      printf(", %s\n", response);
+      send(clientSock, response, 256, 0);
+      free(response);
     }
     else if(buffer[0] == 'A' && buffer[1] == 'V')
     {
@@ -140,7 +169,27 @@ void serverFunction(void* args)
     }
     else if(buffer[0] == 'C' && buffer[1] == 'P')
     {
-      closePolls(n, buffer);
+      sem_wait(&sem);
+      char **strings;
+      char *response = calloc(256, 1);
+      int tokens = makeargv(buffer, ";", &strings);
+      node_t* node = findnode(n, strings[1]);
+      if(node->pollsClosed == true)
+      {
+        strcpy(response, "PF;\0");
+      }
+      else
+      {
+        //printf("Entering recursion\n");
+        closePolls(n, node);
+        //printf("Exited recursion\n");
+        strcpy(response, "SC;\0");
+      }
+      sem_post(&sem);
+      printf("Sending response to client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
+      printf(", %s\n", response);
+      send(clientSock, response, 256, 0);
+      free(response);
     }
     //free(buffer);
   }
@@ -148,21 +197,101 @@ void serverFunction(void* args)
   printf("Closed connection with client at %s:%d\n", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
 }
 
-void returnWinner(node_t* n, char* command)
+char* returnWinner(node_t* n, char* command)
 {
-  printf("Returning Winner\n");
-  return;
+  //printf("Returning Winner\n");
+  sem_wait(&sem);
+  int i = 0;
+  char* response = calloc(256, sizeof(char));
+  while(n[i].name != '\0')
+  {
+    if(n[i].pollsClosed == false)
+    {
+      strcpy(response, "RO;");
+      strcat(response, n[i].name);
+      strcat(response, "\0");
+      sem_post(&sem);
+      return response;
+    }
+    i++;
+  }
+  int highestVotes = 0;
+  char* winner = calloc(256, 1);
+  i = 1;
+  strcpy(winner, n[0].Candidates[0]);
+  highestVotes = n[0].CandidatesVotes[0];
+  while(n[0].Candidates[i][0] != 0)
+  {
+    if(n[0].CandidatesVotes[i] > highestVotes)
+    {
+      strcpy(winner, n[0].Candidates[i]);
+      highestVotes = n[0].CandidatesVotes[i];
+    }
+    i++;
+  }
+  char buf[3];
+  sprintf(buf, "%d", highestVotes);
+  strcat(winner, ";");
+  strcat(winner, buf);
+  strcat(winner, "\0");
+  strcpy(response, "SC;");
+  strcat(response, winner);
+  sem_post(&sem);
+  return response;
 }
 
-void countVotes(node_t* n, char* command)
+char* countVotes(node_t* n, char* command)
 {
-  printf("Counting Votes\n");
-  return;
+  //printf("Counting Votes\n");
+  sem_wait(&sem);
+  char* response = calloc(256, sizeof(char));
+  char **strings;
+  int tokens = makeargv(command, ";", &strings);
+  node_t* node = findnode(n, strings[1]);
+  if(node->Candidates[0][0] == 0)
+  {
+    //Return no votes error code.
+    strcpy(response, "No votes\0");
+    sem_post(&sem);
+    return response;
+  }
+  int highestVotes = 0;
+  char* winner = calloc(256, 1);
+  int i = 1;
+  strcpy(winner, node->Candidates[0]);
+  highestVotes = node->CandidatesVotes[0];
+  while(node->Candidates[i][0] != 0)
+  {
+    if(node->CandidatesVotes[i] > highestVotes)
+    {
+      strcpy(winner, node->Candidates[i]);
+      highestVotes = node->CandidatesVotes[i];
+    }
+    i++;
+  }
+  char buf[3];
+  sprintf(buf, "%d", highestVotes);
+  strcat(winner, ";");
+  strcat(winner, buf);
+  strcat(winner, "\0");
+  strcpy(response, "SC;");
+  strcat(response, winner);
+  sem_post(&sem);
+  return response;
 }
 
-void openPolls(node_t* n, char* command)
+void openPolls(node_t* n, node_t* node)
 {
-  printf("Opening Polls\n");
+  node->pollsOpen = true;
+  if(node->num_children > 0)
+  {
+    int i;
+    for(i = 0; i < node->num_children; i++)
+    {
+      node_t* temp = findnode(n, node->childName[i]);
+      openPolls(n, temp);
+    }
+  }
   return;
 }
 
@@ -178,9 +307,18 @@ void removeVotes(node_t* n, char* command)
   return;
 }
 
-void closePolls(node_t* n, char* command)
+void closePolls(node_t* n, node_t* node)
 {
-  printf("Closing Polls\n");
+  node->pollsClosed = true;
+  if(node->num_children > 0)
+  {
+    int i;
+    for(i = 0; i < node->num_children; i++)
+    {
+      node_t* temp = findnode(n, node->childName[i]);
+      closePolls(n, temp);
+    }
+  }
   return;
 }
 
@@ -198,9 +336,17 @@ int main(int argc, char **argv){
   int i = 0;
   while(mainnodes[i].name[0] != '\0')
   {
-    mainnodes[i].pollOpen = false;
+    mainnodes[i].pollsOpen = false;
+    mainnodes[i].pollsClosed = false;
+    int j;
+    mainnodes[i].Candidates = calloc(MAX_CANDIDATES, sizeof(char*));
+    for(j = 0; j < MAX_CANDIDATES; j++)
+    {
+      mainnodes[i].Candidates[j] = calloc(256, sizeof(char));
+    }
     i++;
   }
+  sem_init(&sem, 0, 1);
   //printgraph(mainnodes);
 
   int serverSock = socket(AF_INET, SOCK_STREAM, 0);

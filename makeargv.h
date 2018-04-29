@@ -16,8 +16,9 @@ typedef struct node{
 	int num_children;
 	char childName[50][1024];
 	char parentName[1024];
-	bool pollOpen;
-	char Candidates[100][100];
+	bool pollsOpen;
+	bool pollsClosed;
+	char** Candidates;
 	int CandidatesVotes[100];
 }node_t;
 
