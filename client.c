@@ -68,6 +68,10 @@ char* commandFormater(int command, char *line)
   int tokens;
   switch(command)
   {
+    case 0:
+      strcpy(buf, line);
+      strcat(buf, "\0");
+      break;
     case 1:
       strcpy(buf, "RW; ;\0");
       break;
@@ -75,7 +79,7 @@ char* commandFormater(int command, char *line)
       tokens = makeargv(line, " ", &strings);
       strcpy(buf, "CV;");
       strcat(buf, strings[1]);
-      strcat(buf, ";\0");
+      strcat(buf, "\0");
       break;
     case 3:
       tokens = makeargv(line, " ", &strings);

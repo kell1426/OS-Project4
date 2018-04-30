@@ -192,17 +192,37 @@ void serverFunction(void* args)
       char **strings;
       char *response = calloc(256, 1);
       int tokens = makeargv(buffer, ";", &strings);
-      node_t* node = findnode(n, strings[1]);
-      if(node->pollsOpen == true)
+      int a = 0;
+      int validRegion = 0;
+      while(n[a].name[0] != 0)
       {
-        strcpy(response, "PF;\0");
+        if(strcmp(n[a].name, strings[1]) == 0)
+        {
+          validRegion = 1;
+          break;
+        }
+        a++;
+      }
+      if(validRegion == 0)
+      {
+        strcpy(response, "NR;");
+        strcat(response, strings[1]);
+        strcat(response, "\0");
       }
       else
       {
-        //printf("Entering recursion\n");
-        openPolls(n, node);
-        //printf("Exited recursion\n");
-        strcpy(response, "SC;\0");
+        node_t* node = findnode(n, strings[1]);
+        if(node->pollsOpen == true)
+        {
+          strcpy(response, "PF;\0");
+        }
+        else
+        {
+          //printf("Entering recursion\n");
+          openPolls(n, node);
+          //printf("Exited recursion\n");
+          strcpy(response, "SC;\0");
+        }
       }
       printf("Sending response to client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
       printf(", %s\n", response);
@@ -216,23 +236,43 @@ void serverFunction(void* args)
       char **strings;
       char *response = calloc(256, 1);
       int tokens = makeargv(buffer, ";", &strings);
-      node_t* node = findnode(n, strings[1]);
-      if(node->isLeafNode == 0)
+      int a = 0;
+      int validRegion = 0;
+      while(n[a].name[0] != 0)
       {
-        strcpy(response, "NL;");
-        strcat(response, node->name);
-        strcat(response, "\0");
+        if(strcmp(n[a].name, strings[1]) == 0)
+        {
+          validRegion = 1;
+          break;
+        }
+        a++;
       }
-      else if(node->pollsOpen == false)
+      if(validRegion == 0)
       {
-        strcpy(response, "RC;");
-        strcat(response, node->name);
+        strcpy(response, "NR;");
+        strcat(response, strings[1]);
         strcat(response, "\0");
       }
       else
       {
-        addVotes(node, strings[2]);
-        strcpy(response, "SC;\0");
+        node_t* node = findnode(n, strings[1]);
+        if(node->isLeafNode == 0)
+        {
+          strcpy(response, "NL;");
+          strcat(response, node->name);
+          strcat(response, "\0");
+        }
+        else if(node->pollsOpen == false)
+        {
+          strcpy(response, "RC;");
+          strcat(response, node->name);
+          strcat(response, "\0");
+        }
+        else
+        {
+          addVotes(node, strings[2]);
+          strcpy(response, "SC;\0");
+        }
       }
       printf("Sending response to client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
       printf(", %s\n", response);
@@ -246,31 +286,51 @@ void serverFunction(void* args)
       char **strings;
       char *response = calloc(256, 1);
       int tokens = makeargv(buffer, ";", &strings);
-      node_t* node = findnode(n, strings[1]);
-      if(node->isLeafNode == 0)
+      int a = 0;
+      int validRegion = 0;
+      while(n[a].name[0] != 0)
       {
-        strcpy(response, "NL;");
-        strcat(response, node->name);
-        strcat(response, "\0");
+        if(strcmp(n[a].name, strings[1]) == 0)
+        {
+          validRegion = 1;
+          break;
+        }
+        a++;
       }
-      else if(node->pollsOpen == false)
+      if(validRegion == 0)
       {
-        strcpy(response, "RC;");
-        strcat(response, node->name);
+        strcpy(response, "NR;");
+        strcat(response, strings[1]);
         strcat(response, "\0");
       }
       else
       {
-        int illegal = removeVotes(node, strings[2]);
-        if(illegal == -1)
+        node_t* node = findnode(n, strings[1]);
+        if(node->isLeafNode == 0)
         {
-          strcpy(response, "IS;");
+          strcpy(response, "NL;");
+          strcat(response, node->name);
+          strcat(response, "\0");
+        }
+        else if(node->pollsOpen == false)
+        {
+          strcpy(response, "RC;");
           strcat(response, node->name);
           strcat(response, "\0");
         }
         else
         {
-          strcpy(response, "SC;\0");
+          int illegal = removeVotes(node, strings[2]);
+          if(illegal == -1)
+          {
+            strcpy(response, "IS;");
+            strcat(response, node->name);
+            strcat(response, "\0");
+          }
+          else
+          {
+            strcpy(response, "SC;\0");
+          }
         }
       }
       printf("Sending response to client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
@@ -285,23 +345,54 @@ void serverFunction(void* args)
       char **strings;
       char *response = calloc(256, 1);
       int tokens = makeargv(buffer, ";", &strings);
-      node_t* node = findnode(n, strings[1]);
-      if(node->pollsClosed == true)
+      int a = 0;
+      int validRegion = 0;
+      while(n[a].name[0] != 0)
       {
-        strcpy(response, "PF;\0");
+        if(strcmp(n[a].name, strings[1]) == 0)
+        {
+          validRegion = 1;
+          break;
+        }
+        a++;
+      }
+      if(validRegion == 0)
+      {
+        strcpy(response, "NR;");
+        strcat(response, strings[1]);
+        strcat(response, "\0");
       }
       else
       {
-        //printf("Entering recursion\n");
-        closePolls(n, node);
-        //printf("Exited recursion\n");
-        strcpy(response, "SC;\0");
+        node_t* node = findnode(n, strings[1]);
+        if(node->pollsClosed == true)
+        {
+          strcpy(response, "PF;\0");
+        }
+        else
+        {
+          //printf("Entering recursion\n");
+          closePolls(n, node);
+          //printf("Exited recursion\n");
+          strcpy(response, "SC;\0");
+        }
       }
       printf("Sending response to client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
       printf(", %s\n", response);
       send(clientSock, response, 256, 0);
       free(response);
       sem_post(&sem);
+    }
+    else
+    {
+      char *response = calloc(256, 1);
+      strcpy(response, "UC;");
+      strcat(response, buffer);
+      strcat(response, "\0");
+      printf("Sending response to client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
+      printf(", %s\n", response);
+      send(clientSock, response, 256, 0);
+      free(response);
     }
     //free(buffer);
   }
@@ -354,6 +445,24 @@ char* countVotes(node_t* n, char* command)
   char* response = calloc(256, sizeof(char));
   char **strings;
   int tokens = makeargv(command, ";", &strings);
+  int a = 0;
+  int validRegion = 0;
+  while(n[a].name[0] != 0)
+  {
+    if(strcmp(n[a].name, strings[1]) == 0)
+    {
+      validRegion = 1;
+      break;
+    }
+    a++;
+  }
+  if(validRegion == 0)
+  {
+    strcpy(response, "NR;");
+    strcat(response, strings[1]);
+    strcat(response, "\0");
+    return response;
+  }
   node_t* node = findnode(n, strings[1]);
   if(node->Candidates[0][0] == 0)
   {

@@ -97,7 +97,7 @@ node_t* findnode(node_t* start, char* tobefound){
 			}
 
 			temp++;
-		} while(temp->name!=NULL);
+		} while(temp->name[0] != 0);
 		return NULL;
 }
 
