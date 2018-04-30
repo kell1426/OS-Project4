@@ -361,27 +361,19 @@ char* countVotes(node_t* n, char* command)
     strcpy(response, "No votes\0");
     return response;
   }
-  int highestVotes = 0;
-  char* winner = calloc(256, 1);
-  int i = 1;
-  strcpy(winner, node->Candidates[0]);
-  highestVotes = node->CandidatesVotes[0];
+  strcpy(response, "SC");
+  int i = 0;
   while(node->Candidates[i][0] != 0)
   {
-    if(node->CandidatesVotes[i] > highestVotes)
-    {
-      strcpy(winner, node->Candidates[i]);
-      highestVotes = node->CandidatesVotes[i];
-    }
+    strcat(response, ";");
+    strcat(response, node->Candidates[i]);
+    strcat(response, ":");
+    char buf[3];
+    sprintf(buf, "%d", node->CandidatesVotes[i]);
+    strcat(response, buf);
     i++;
   }
-  char buf[3];
-  sprintf(buf, "%d", highestVotes);
-  strcat(winner, ";");
-  strcat(winner, buf);
-  strcat(winner, "\0");
-  strcpy(response, "SC;");
-  strcat(response, winner);
+  strcat(response, "\0");
   return response;
 }
 
@@ -479,6 +471,11 @@ int removeVotes(node_t* n, char* command)
       j++;
     }
     n->CandidatesVotes[j] -= atoi(strings2[1]);
+    if(n->CandidatesVotes[j] == 0)
+    {
+      free(n->Candidates[j]);
+      n->Candidates[j] = calloc(256, 1);
+    }
   }
   return 0;
 }
