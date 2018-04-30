@@ -20,6 +20,7 @@ typedef struct node{
 	bool pollsClosed;
 	char** Candidates;
 	int CandidatesVotes[100];
+	int id;
 }node_t;
 
 // struct threadArgs{

@@ -111,32 +111,40 @@ void aggregateVotes(node_t* node, node_t* root)
       aggregateVotes(child, root);
     }
   }
-  node_t* parent = findnode(root, node->parentName);
-  int i = 0;
-  while(node->Candidates[i][0] != 0)
+  if(node->id == 0)
   {
-    int j = 0;
-    int match = 0;
-    while(parent->Candidates[j][0] != 0)
-    {
-      if(strcmp(node->Candidates[i], parent->Candidates[j]) == 0)
-      {
-        match = 1;
-        break;
-      }
-      j++;
-    }
-    if(match == 1)
-    {
-      parent->CandidatesVotes[j] += node->CandidatesVotes[i];
-    }
-    else
-    {
-      strcpy(parent->Candidates[j], node->Candidates[i]);
-      parent->CandidatesVotes[j] = node->CandidatesVotes[i];
-    }
+    return;
   }
-  return;
+  else
+  {
+    node_t* parent = findnode(root, node->parentName);
+    int i = 0;
+    while(node->Candidates[i][0] != 0)
+    {
+      int j = 0;
+      int match = 0;
+      while(parent->Candidates[j][0] != 0)
+      {
+        if(strcmp(node->Candidates[i], parent->Candidates[j]) == 0)
+        {
+          match = 1;
+          break;
+        }
+        j++;
+      }
+      if(match == 1)
+      {
+        parent->CandidatesVotes[j] += node->CandidatesVotes[i];
+      }
+      else
+      {
+        strcpy(parent->Candidates[j], node->Candidates[i]);
+        parent->CandidatesVotes[j] = node->CandidatesVotes[i];
+      }
+      i++;
+    }
+    return;
+  }
 }
 
 void serverFunction(void* args)
@@ -306,7 +314,7 @@ char* returnWinner(node_t* n, char* command)
   //printf("Returning Winner\n");
   int i = 0;
   char* response = calloc(256, sizeof(char));
-  while(n[i].name != '\0')
+  while(n[i].name[0] != 0)
   {
     if(n[i].pollsClosed == false)
     {
@@ -317,7 +325,9 @@ char* returnWinner(node_t* n, char* command)
     }
     i++;
   }
+  //printf("Entering recursion");
   aggregateVotes(n, n);
+  //printf("Exited recursion");
   int highestVotes = 0;
   char* winner = calloc(256, 1);
   i = 1;
@@ -332,12 +342,8 @@ char* returnWinner(node_t* n, char* command)
     }
     i++;
   }
-  char buf[3];
-  sprintf(buf, "%d", highestVotes);
-  strcat(winner, ";");
-  strcat(winner, buf);
   strcat(winner, "\0");
-  strcpy(response, "SC;");
+  strcpy(response, "SC;Winner:");
   strcat(response, winner);
   return response;
 }
@@ -506,6 +512,7 @@ int main(int argc, char **argv){
   int i = 0;
   while(mainnodes[i].name[0] != '\0')
   {
+    mainnodes[i].id = i;
     mainnodes[i].pollsOpen = false;
     mainnodes[i].pollsClosed = false;
     if(mainnodes[i].num_children == 0)
