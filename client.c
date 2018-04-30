@@ -66,6 +66,8 @@ char* commandFormater(int command, char *line)
   char *buf = malloc(256);
   char **strings;
   int tokens;
+  int len = 0;
+  int i = 0;
   switch(command)
   {
     case 0:
@@ -79,30 +81,55 @@ char* commandFormater(int command, char *line)
       tokens = makeargv(line, " ", &strings);
       strcpy(buf, "CV;");
       strcat(buf, strings[1]);
+      len = strlen(strings[1]);
+      for(i = len; i < 15; i++)
+      {
+        strcat(buf, " ");
+      }
       strcat(buf, "\0");
       break;
     case 3:
       tokens = makeargv(line, " ", &strings);
       strcpy(buf, "OP;");
       strcat(buf, strings[1]);
+      len = strlen(strings[1]);
+      for(i = len; i < 15; i++)
+      {
+        strcat(buf, " ");
+      }
       strcat(buf, ";\0");
       break;
     case 4:
       tokens = makeargv(line, " ", &strings);
       strcpy(buf, "AV;");
       strcat(buf, strings[1]);
+      len = strlen(strings[1]);
+      for(i = len; i < 15; i++)
+      {
+        strcat(buf, " ");
+      }
       strcat(buf, ";");
       break;
     case 5:
       tokens = makeargv(line, " ", &strings);
       strcpy(buf, "RV;");
       strcat(buf, strings[1]);
+      len = strlen(strings[1]);
+      for(i = len; i < 15; i++)
+      {
+        strcat(buf, " ");
+      }
       strcat(buf, ";");
       break;
     case 6:
       tokens = makeargv(line, " ", &strings);
       strcpy(buf, "CP;");
       strcat(buf, strings[1]);
+      len = strlen(strings[1]);
+      for(i = len; i < 15; i++)
+      {
+        strcat(buf, " ");
+      }
       strcat(buf, ";\0");
       break;
   }

@@ -192,11 +192,13 @@ void serverFunction(void* args)
       char **strings;
       char *response = calloc(256, 1);
       int tokens = makeargv(buffer, ";", &strings);
+      char* trimmed = calloc(20, 1);
+      trimmed = trimwhitespace(strings[1]);
       int a = 0;
       int validRegion = 0;
       while(n[a].name[0] != 0)
       {
-        if(strcmp(n[a].name, strings[1]) == 0)
+        if(strcmp(n[a].name, trimmed) == 0)
         {
           validRegion = 1;
           break;
@@ -206,22 +208,22 @@ void serverFunction(void* args)
       if(validRegion == 0)
       {
         strcpy(response, "NR;");
-        strcat(response, strings[1]);
+        strcat(response, trimmed);
         strcat(response, "\0");
       }
       else
       {
-        node_t* node = findnode(n, strings[1]);
+        node_t* node = findnode(n, trimmed);
         if(node->pollsOpen == true && node->pollsClosed == false)
         {
           strcpy(response, "PF;");
-          strcat(response, strings[1]);
+          strcat(response, trimmed);
           strcat(response, " Open\0");
         }
         else if((node->pollsOpen == true && node->pollsClosed == true) || node->Candidates[0][0] != 0)
         {
           strcpy(response, "RR;");
-          strcat(response, strings[1]);
+          strcat(response, trimmed);
           strcat(response, "\0");
         }
         else
@@ -236,6 +238,7 @@ void serverFunction(void* args)
       printf(", %s\n", response);
       send(clientSock, response, 256, 0);
       free(response);
+      //free(trimmed);
       sem_post(&sem);
     }
     else if(buffer[0] == 'A' && buffer[1] == 'V')
@@ -244,17 +247,19 @@ void serverFunction(void* args)
       char **strings;
       char *response = calloc(256, 1);
       int tokens = makeargv(buffer, ";", &strings);
+      char* trimmed = calloc(20, 1);
+      trimmed = trimwhitespace(strings[1]);
       int a = 0;
       int validRegion = 0;
       int regionClosed = 0;
       while(n[a].name[0] != 0)
       {
-        if(strcmp(n[a].name, strings[1]) == 0)
+        if(strcmp(n[a].name, trimmed) == 0)
         {
           validRegion = 1;
           break;
         }
-        if(n[a].pollsOpen == false || n[a].pollsClosed == true)
+        if(n[a].pollsOpen == false || (n[a].pollsOpen == true && n[a].pollsClosed == true))
         {
           regionClosed = 1;
           break;
@@ -264,13 +269,13 @@ void serverFunction(void* args)
       if(validRegion == 0)
       {
         strcpy(response, "NR;");
-        strcat(response, strings[1]);
+        strcat(response, trimmed);
         strcat(response, "\0");
       }
-      else if(regionClosed == 0)
+      else if(regionClosed == 1)
       {
         strcpy(response, "RC;");
-        strcat(response, strings[1]);
+        strcat(response, trimmed);
         strcat(response, "\0");
       }
       else
@@ -298,6 +303,7 @@ void serverFunction(void* args)
       printf(", %s\n", response);
       send(clientSock, response, 256, 0);
       free(response);
+      //free(trimmed);
       sem_post(&sem);
     }
     else if(buffer[0] == 'R' && buffer[1] == 'V')
@@ -306,17 +312,19 @@ void serverFunction(void* args)
       char **strings;
       char *response = calloc(256, 1);
       int tokens = makeargv(buffer, ";", &strings);
+      char* trimmed = calloc(20, 1);
+      trimmed = trimwhitespace(strings[1]);
       int a = 0;
       int validRegion = 0;
       int regionClosed = 0;
       while(n[a].name[0] != 0)
       {
-        if(strcmp(n[a].name, strings[1]) == 0)
+        if(strcmp(n[a].name, trimmed) == 0)
         {
           validRegion = 1;
           break;
         }
-        if(n[a].pollsOpen == false || n[a].pollsClosed == true)
+        if(n[a].pollsOpen == false || (n[a].pollsOpen == true && n[a].pollsClosed == true))
         {
           regionClosed = 1;
           break;
@@ -326,18 +334,18 @@ void serverFunction(void* args)
       if(validRegion == 0)
       {
         strcpy(response, "NR;");
-        strcat(response, strings[1]);
+        strcat(response, trimmed);
         strcat(response, "\0");
       }
-      else if(regionClosed == 0)
+      else if(regionClosed == 1)
       {
         strcpy(response, "RC;");
-        strcat(response, strings[1]);
+        strcat(response, trimmed);
         strcat(response, "\0");
       }
       else
       {
-        node_t* node = findnode(n, strings[1]);
+        node_t* node = findnode(n, trimmed);
         if(node->isLeafNode == 0)
         {
           strcpy(response, "NL;");
@@ -369,6 +377,7 @@ void serverFunction(void* args)
       printf(", %s\n", response);
       send(clientSock, response, 256, 0);
       free(response);
+      //free(trimmed);
       sem_post(&sem);
     }
     else if(buffer[0] == 'C' && buffer[1] == 'P')
@@ -377,11 +386,13 @@ void serverFunction(void* args)
       char **strings;
       char *response = calloc(256, 1);
       int tokens = makeargv(buffer, ";", &strings);
+      char* trimmed = calloc(20, 1);
+      trimmed = trimwhitespace(strings[1]);
       int a = 0;
       int validRegion = 0;
       while(n[a].name[0] != 0)
       {
-        if(strcmp(n[a].name, strings[1]) == 0)
+        if(strcmp(n[a].name, trimmed) == 0)
         {
           validRegion = 1;
           break;
@@ -391,16 +402,16 @@ void serverFunction(void* args)
       if(validRegion == 0)
       {
         strcpy(response, "NR;");
-        strcat(response, strings[1]);
+        strcat(response, trimmed);
         strcat(response, "\0");
       }
       else
       {
-        node_t* node = findnode(n, strings[1]);
+        node_t* node = findnode(n, trimmed);
         if(node->pollsClosed == true)
         {
           strcpy(response, "PF;");
-          strcat(response, strings[1]);
+          strcat(response, trimmed);
           strcat(response, " Closed\0");
         }
         else
@@ -479,11 +490,13 @@ char* countVotes(node_t* n, char* command)
   char* response = calloc(256, sizeof(char));
   char **strings;
   int tokens = makeargv(command, ";", &strings);
+  char* trimmed = calloc(20, 1);
+  trimmed = trimwhitespace(strings[1]);
   int a = 0;
   int validRegion = 0;
   while(n[a].name[0] != 0)
   {
-    if(strcmp(n[a].name, strings[1]) == 0)
+    if(strcmp(n[a].name, trimmed) == 0)
     {
       validRegion = 1;
       break;
@@ -497,7 +510,7 @@ char* countVotes(node_t* n, char* command)
     strcat(response, "\0");
     return response;
   }
-  node_t* node = findnode(n, strings[1]);
+  node_t* node = findnode(n, trimmed);
   if(node->Candidates[0][0] == 0)
   {
     //Return no votes error code.
