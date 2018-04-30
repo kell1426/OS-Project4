@@ -212,9 +212,17 @@ void serverFunction(void* args)
       else
       {
         node_t* node = findnode(n, strings[1]);
-        if(node->pollsOpen == true)
+        if(node->pollsOpen == true && node->pollsClosed == false)
         {
-          strcpy(response, "PF;\0");
+          strcpy(response, "PF;");
+          strcat(response, strings[1]);
+          strcat(response, " Open\0");
+        }
+        else if((node->pollsOpen == true && node->pollsClosed == true) || node->Candidates[0][0] != 0)
+        {
+          strcpy(response, "RR;");
+          strcat(response, strings[1]);
+          strcat(response, "\0");
         }
         else
         {
@@ -238,6 +246,7 @@ void serverFunction(void* args)
       int tokens = makeargv(buffer, ";", &strings);
       int a = 0;
       int validRegion = 0;
+      int regionClosed = 0;
       while(n[a].name[0] != 0)
       {
         if(strcmp(n[a].name, strings[1]) == 0)
@@ -245,11 +254,22 @@ void serverFunction(void* args)
           validRegion = 1;
           break;
         }
+        if(n[a].pollsOpen == false || n[a].pollsClosed == true)
+        {
+          regionClosed = 1;
+          break;
+        }
         a++;
       }
       if(validRegion == 0)
       {
         strcpy(response, "NR;");
+        strcat(response, strings[1]);
+        strcat(response, "\0");
+      }
+      else if(regionClosed == 0)
+      {
+        strcpy(response, "RC;");
         strcat(response, strings[1]);
         strcat(response, "\0");
       }
@@ -262,7 +282,7 @@ void serverFunction(void* args)
           strcat(response, node->name);
           strcat(response, "\0");
         }
-        else if(node->pollsOpen == false)
+        else if(node->pollsOpen == false || (node->pollsOpen == true && node->pollsClosed == true))
         {
           strcpy(response, "RC;");
           strcat(response, node->name);
@@ -288,6 +308,7 @@ void serverFunction(void* args)
       int tokens = makeargv(buffer, ";", &strings);
       int a = 0;
       int validRegion = 0;
+      int regionClosed = 0;
       while(n[a].name[0] != 0)
       {
         if(strcmp(n[a].name, strings[1]) == 0)
@@ -295,11 +316,22 @@ void serverFunction(void* args)
           validRegion = 1;
           break;
         }
+        if(n[a].pollsOpen == false || n[a].pollsClosed == true)
+        {
+          regionClosed = 1;
+          break;
+        }
         a++;
       }
       if(validRegion == 0)
       {
         strcpy(response, "NR;");
+        strcat(response, strings[1]);
+        strcat(response, "\0");
+      }
+      else if(regionClosed == 0)
+      {
+        strcpy(response, "RC;");
         strcat(response, strings[1]);
         strcat(response, "\0");
       }
@@ -312,7 +344,7 @@ void serverFunction(void* args)
           strcat(response, node->name);
           strcat(response, "\0");
         }
-        else if(node->pollsOpen == false)
+        else if(node->pollsOpen == false || (node->pollsOpen == true && node->pollsClosed == true))
         {
           strcpy(response, "RC;");
           strcat(response, node->name);
@@ -367,7 +399,9 @@ void serverFunction(void* args)
         node_t* node = findnode(n, strings[1]);
         if(node->pollsClosed == true)
         {
-          strcpy(response, "PF;\0");
+          strcpy(response, "PF;");
+          strcat(response, strings[1]);
+          strcat(response, " Closed\0");
         }
         else
         {
