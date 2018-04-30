@@ -1,0 +1,7 @@
+Count_Votes County_2
+Close_Polls Hello
+Remove_Votes County_2 fake.txt
+Count_Votes County_2
+Close_Polls Who_Won
+Close_Polls Who_Won
+Return_Winner
