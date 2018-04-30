@@ -361,11 +361,19 @@ char* countVotes(node_t* n, char* command)
     strcpy(response, "No votes\0");
     return response;
   }
-  strcpy(response, "SC");
+  strcpy(response, "SC;");
   int i = 0;
+  int first = 1;
   while(node->Candidates[i][0] != 0)
   {
-    strcat(response, ";");
+    if(first == 1)
+    {
+      first = 0;
+    }
+    else
+    {
+      strcat(response, ",");
+    }
     strcat(response, node->Candidates[i]);
     strcat(response, ":");
     char buf[3];
