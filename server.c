@@ -37,6 +37,10 @@ char* removeVotes(node_t* n, char* command);
 void closePolls(node_t* n, node_t* node);
 void aggregateVotes(node_t* n, node_t* root);
 
+//Function parseInputLine
+//Takes in one line of the file, the nodes, and the line number.
+//Adds in necessary info to the nodes and creates
+//the parent/child links
 void parseInputLine(char *buf, node_t* n, int line)
 {
   char **strings;
@@ -81,6 +85,10 @@ void parseInputLine(char *buf, node_t* n, int line)
   }
 }
 
+//Function DAGCreator
+//Takes in the nodes and the DAG file .
+//Passes each line of the DAG file to the function
+//parseInputLine.
 void DAGCreator(node_t* n, char *filename)
 {
   FILE *DAG = fopen(filename, "r");
@@ -100,6 +108,14 @@ void DAGCreator(node_t* n, char *filename)
     }
   }
 }
+
+//Function aggregateVotes
+//Takes in a node and the root node
+//Called during the Return_Winner function call
+//Starts at the root node and recursivley calls itself
+//down to each leaf node. Each call will then add its
+//votes into its parent node. The votes are aggregated
+//all the way back up to the top.
 void aggregateVotes(node_t* node, node_t* root)
 {
   if(node->num_children > 0)
@@ -147,6 +163,15 @@ void aggregateVotes(node_t* node, node_t* root)
   }
 }
 
+//Function serverFunction
+//Takes in the thread arguments
+//This function is called for each thread generated
+//For each client that connects to the server, a thread is
+//spawned and calls this function.
+//Receives the command from the client and parses
+//the command to determine which of the six requests it is
+//Based on the command, it calls the corresponding function
+//and then sends the response back to the client.
 void serverFunction(void* args)
 {
   struct serverArgs *realArgs = args;
@@ -585,6 +610,12 @@ void serverFunction(void* args)
   printf("Closed connection with client at %s:%d\n", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
 }
 
+//Function returnWinner
+//Takes in the root node and the command
+//Makes sure the polls are closed and then calls
+//aggregateVotes. After this finds the candidate with
+//the highest number of votes in the root node.
+//Returns the winning candidate.
 char* returnWinner(node_t* n, char* command)
 {
   //printf("Returning Winner\n");
@@ -624,6 +655,12 @@ char* returnWinner(node_t* n, char* command)
   return response;
 }
 
+//Function countVotes
+//Taks in the root node and th command
+//Verifies that the region in the command
+//is a valid region. If valid, it will count
+//up all the votes in the region, format them,
+//and return a string conataining all the votes info.
 char* countVotes(node_t* n, char* command)
 {
   //printf("Counting Votes\n");
@@ -681,6 +718,10 @@ char* countVotes(node_t* n, char* command)
   return response;
 }
 
+//Function openPolls
+//Takes in the root node and the node to open its polls.
+//Opens the poll in this node, and then recursivley calls itself
+//on each child of this original node.
 void openPolls(node_t* n, node_t* node)
 {
   node->pollsOpen = true;
@@ -696,6 +737,12 @@ void openPolls(node_t* n, node_t* node)
   return;
 }
 
+//Function addVotes
+//Takes in the node to add votes to and the command line
+//Goes through each candidate in the command line
+//and checks if already in the node. If so, add the votes to
+//this candidate. If not, add the candidate and the votes to a new
+//spot in the nodes candidate variables.
 void addVotes(node_t* n, char* command)
 {
   char** strings;
@@ -729,6 +776,12 @@ void addVotes(node_t* n, char* command)
   return;
 }
 
+//Function removeVotes
+//Operates similar to addVotes but will remove votes.
+//If the candidate is not in the node or subtracting the votes
+//would result in negative votes, returns a Illegal Subtraction error.
+//Otherwise it returns an ok message indicating succesful removal
+//of the votes.
 char* removeVotes(node_t* n, char* command)
 {
   char** strings;
@@ -789,6 +842,10 @@ char* removeVotes(node_t* n, char* command)
   return ok;
 }
 
+//Function closePolls
+//Taks in the node and the root node
+//Closes the poll of the specific node
+//Then recusivley closes the polls of each child of this node.
 void closePolls(node_t* n, node_t* node)
 {
   node->pollsClosed = true;
@@ -804,6 +861,14 @@ void closePolls(node_t* n, node_t* node)
   return;
 }
 
+//Function main
+//Calls DAGCreator to set up the DAG data structure
+//Goes through each node and sets up the polls and other info
+//Initializes the candidate info for each node, and the global semaphore
+//Opens up the server socket and listens for client connections
+//When a client connects, the server creates a thread and send the
+//client socket to the server thread function. Then the server goes back to listening
+//for new connections. This allows multi threading of the server.
 int main(int argc, char **argv){
   struct node* mainnodes=(struct node*)malloc(sizeof(struct node)*MAX_NODES);
 

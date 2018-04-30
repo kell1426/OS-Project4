@@ -29,6 +29,11 @@
 int commandChecker(char *buf);
 char* commandFormater(int command, char *line);
 
+//Function commandChecker
+//Takes in one line from the command file
+//and checks if any of the 6 commands are in the line
+//returns an int identifier. If no command is in line
+//returns 0 for the int identifier
 int commandChecker(char *buf)
 {
   if(strstr(buf, "Return_Winner") != NULL)
@@ -61,6 +66,10 @@ int commandChecker(char *buf)
   }
 }
 
+//Function commandFormater
+//Takes in the command identifier and the line from
+//the command file. Formats the command into the correct
+//format to be sent to the server.
 char* commandFormater(int command, char *line)
 {
   char *buf = malloc(256);
@@ -136,6 +145,11 @@ char* commandFormater(int command, char *line)
   return buf;
 }
 
+//Function leafCounter
+//If the command is add votes or remove votes
+//then open the text file conataining the votes
+//and store them into the Candidates and CandidatesVotes
+//variables
 void leafCounter(char* leafFile, char** Candidates, int CandidatesVotes[MAX_CANDIDATES])
 {
   FILE *leaf = fopen(leafFile, "r");
@@ -183,6 +197,12 @@ void leafCounter(char* leafFile, char** Candidates, int CandidatesVotes[MAX_CAND
   free(buf);
 }
 
+//Function main
+//Open up a socket and connecto to the IP and port
+//passed in from the arguments. Connect to the server using this
+//socket. Open up the command file and process each command individually.
+//Formats the printouts to STDOUT as well. Waits for the server
+//to send the response before sending the next request.
 int main(int argc, char **argv){
   struct node* mainnodes=(struct node*)malloc(sizeof(struct node)*MAX_NODES);
 
