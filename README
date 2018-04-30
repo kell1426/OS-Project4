@@ -1,0 +1,23 @@
+/*kell1426
+*04/26/18
+*Daniel Kelly
+*4718021*/
+
+CSCI 4061 Programming Project 4
+Daniel Kelly
+x500: kell1426
+ID: 4718021
+
+Lecture Section: 10
+
+I did not implement the extra credit, and I worked on this project individually.
+
+The purpose of this program is to simulate a votecounting application with the addition of polls and networking. This program operates on the client/server model. The server will initialize the DAG data structure and take in requests from the client. These requests will modify the nodes of the data structure based on a polling method. When the polls are opened, votes can be added or removed to leaf nodes. When they are closed, no more votes can be added or removed and the polls cannot be re-opened. The client will connect to the server and read a command file. This command file will conatian different commands the server will use to change the DAG. It will receive responses from the server that contain different success or error codes defined in the communication protocol.
+
+To compile this program, just run the command "make" using the included makefile. To remove the executables, run the command "make clean".
+
+To execute this program, two terminals will need to be opened. One for the server, and the other for a client. To start the server, run the command:
+	./server <DAG.file> <Port>
+<DAG.file> is the file that contains the node information used to create the DAG. The port is the port the server will listen on. To run the client run the command:
+	./client <command.file> <IP address> <Port>
+<command.file> is the file containing the commands that are to be sent to the server. <IP address> is the IP address that the server is running on. <Port> is the port that the server is listening to.
