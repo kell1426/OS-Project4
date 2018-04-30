@@ -75,7 +75,7 @@ char* commandFormater(int command, char *line)
       strcat(buf, "\0");
       break;
     case 1:
-      strcpy(buf, "RW; ;\0");
+      strcpy(buf, "RW;               ;\0");
       break;
     case 2:
       tokens = makeargv(line, " ", &strings);
@@ -257,11 +257,27 @@ int main(int argc, char **argv){
           }
           strcat(formattedCommand, "\0");
         }
-        printf("Sending request to server: %s\n", formattedCommand);
+        char** strings3;
+        int num = makeargv(formattedCommand, ";", &strings3);
+        char *trimmed = calloc(20, 1);
+        if(strings3[1] != NULL)
+        {
+          trimmed = trimwhitespace(strings3[1]);
+        }
+        if(strcmp(strings3[0], "RW") == 0)
+        {
+          printf("Sending request to server: RW %s %s\n", NULL, NULL);
+        }
+        else
+        {
+          printf("Sending request to server: %s %s %s\n", strings3[0], trimmed, strings3[2]);
+        }
         send(sock, formattedCommand, 256, 0);
         char *response = calloc(256, 1);
         recv(sock, response, 256, 0);
-        printf("%s\n", response);
+        char** strings4;
+        num = makeargv(response, ";", &strings4);
+        printf("Received response from server: %s %s\n", strings4[0], strings4[1]);
         free(formattedCommand);
         if(command == 4 || command == 5)
         {

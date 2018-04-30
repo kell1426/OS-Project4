@@ -162,15 +162,50 @@ void serverFunction(void* args)
     {
       break;
     }
-    printf("Request received from client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
-    printf(", %s\n", buffer);
+    printf("Request received from client at %s:%d, ", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
+    char** strings3;
+    int tok = makeargv(buffer, ";", &strings3);
+    char *trimmed = calloc(20, 1);
+    if(strings3[1] != NULL)
+    {
+      trimmed = trimwhitespace(strings3[1]);
+    }
+    if(strcmp(strings3[0], "RW") == 0)
+    {
+      printf("RW %s %s\n", NULL, NULL);
+    }
+    else
+    {
+      printf("%s %s %s\n", strings3[0], trimmed, strings3[2]);
+    }
     if(buffer[0] == 'R' && buffer[1] == 'W')
     {
       sem_wait(&sem);
       char* response = NULL;
       response = returnWinner(n, buffer);
-      printf("Sending response to client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
-      printf(", %s\n", response);
+      printf("Sending response to client at %s:%d, ", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
+      int b = 0;
+      while(response[b] != '\0')
+      {
+        if(response[b] == ';')
+        {
+          if(response[b+1] == '\0')
+          {
+            printf(" %s", NULL);
+            break;
+          }
+          else
+          {
+            printf(" ");
+          }
+        }
+        else
+        {
+          printf("%c", response[b]);
+        }
+        b++;
+      }
+      printf("\n");
       send(clientSock, response, 256, 0);
       free(response);
       sem_post(&sem);
@@ -180,8 +215,29 @@ void serverFunction(void* args)
       sem_wait(&sem);
       char* response = NULL;
       response = countVotes(n, buffer);
-      printf("Sending response to client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
-      printf(", %s\n", response);
+      printf("Sending response to client at %s:%d, ", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
+      int b = 0;
+      while(response[b] != '\0')
+      {
+        if(response[b] == ';')
+        {
+          if(response[b+1] == '\0')
+          {
+            printf(" %s", NULL);
+            break;
+          }
+          else
+          {
+            printf(" ");
+          }
+        }
+        else
+        {
+          printf("%c", response[b]);
+        }
+        b++;
+      }
+      printf("\n");
       send(clientSock, response, 256, 0);
       free(response);
       sem_post(&sem);
@@ -234,8 +290,29 @@ void serverFunction(void* args)
           strcpy(response, "SC;\0");
         }
       }
-      printf("Sending response to client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
-      printf(", %s\n", response);
+      printf("Sending response to client at %s:%d, ", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
+      int b = 0;
+      while(response[b] != '\0')
+      {
+        if(response[b] == ';')
+        {
+          if(response[b+1] == '\0')
+          {
+            printf(" %s", NULL);
+            break;
+          }
+          else
+          {
+            printf(" ");
+          }
+        }
+        else
+        {
+          printf("%c", response[b]);
+        }
+        b++;
+      }
+      printf("\n");
       send(clientSock, response, 256, 0);
       free(response);
       //free(trimmed);
@@ -251,7 +328,6 @@ void serverFunction(void* args)
       trimmed = trimwhitespace(strings[1]);
       int a = 0;
       int validRegion = 0;
-      int regionClosed = 0;
       while(n[a].name[0] != 0)
       {
         if(strcmp(n[a].name, trimmed) == 0)
@@ -259,11 +335,7 @@ void serverFunction(void* args)
           validRegion = 1;
           break;
         }
-        if(n[a].pollsOpen == false || (n[a].pollsOpen == true && n[a].pollsClosed == true))
-        {
-          regionClosed = 1;
-          break;
-        }
+
         a++;
       }
       if(validRegion == 0)
@@ -272,12 +344,7 @@ void serverFunction(void* args)
         strcat(response, trimmed);
         strcat(response, "\0");
       }
-      else if(regionClosed == 1)
-      {
-        strcpy(response, "RC;");
-        strcat(response, trimmed);
-        strcat(response, "\0");
-      }
+
       else
       {
         node_t* node = findnode(n, strings[1]);
@@ -299,8 +366,29 @@ void serverFunction(void* args)
           strcpy(response, "SC;\0");
         }
       }
-      printf("Sending response to client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
-      printf(", %s\n", response);
+      printf("Sending response to client at %s:%d, ", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
+      int b = 0;
+      while(response[b] != '\0')
+      {
+        if(response[b] == ';')
+        {
+          if(response[b+1] == '\0')
+          {
+            printf(" %s", NULL);
+            break;
+          }
+          else
+          {
+            printf(" ");
+          }
+        }
+        else
+        {
+          printf("%c", response[b]);
+        }
+        b++;
+      }
+      printf("\n");
       send(clientSock, response, 256, 0);
       free(response);
       //free(trimmed);
@@ -316,7 +404,6 @@ void serverFunction(void* args)
       trimmed = trimwhitespace(strings[1]);
       int a = 0;
       int validRegion = 0;
-      int regionClosed = 0;
       while(n[a].name[0] != 0)
       {
         if(strcmp(n[a].name, trimmed) == 0)
@@ -324,22 +411,11 @@ void serverFunction(void* args)
           validRegion = 1;
           break;
         }
-        if(n[a].pollsOpen == false || (n[a].pollsOpen == true && n[a].pollsClosed == true))
-        {
-          regionClosed = 1;
-          break;
-        }
         a++;
       }
       if(validRegion == 0)
       {
         strcpy(response, "NR;");
-        strcat(response, trimmed);
-        strcat(response, "\0");
-      }
-      else if(regionClosed == 1)
-      {
-        strcpy(response, "RC;");
         strcat(response, trimmed);
         strcat(response, "\0");
       }
@@ -373,8 +449,29 @@ void serverFunction(void* args)
           }
         }
       }
-      printf("Sending response to client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
-      printf(", %s\n", response);
+      printf("Sending response to client at %s:%d, ", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
+      int b = 0;
+      while(response[b] != '\0')
+      {
+        if(response[b] == ';')
+        {
+          if(response[b+1] == '\0')
+          {
+            printf(" %s", NULL);
+            break;
+          }
+          else
+          {
+            printf(" ");
+          }
+        }
+        else
+        {
+          printf("%c", response[b]);
+        }
+        b++;
+      }
+      printf("\n");
       send(clientSock, response, 256, 0);
       free(response);
       //free(trimmed);
@@ -422,8 +519,29 @@ void serverFunction(void* args)
           strcpy(response, "SC;\0");
         }
       }
-      printf("Sending response to client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
-      printf(", %s\n", response);
+      printf("Sending response to client at %s:%d, ", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
+      int b = 0;
+      while(response[b] != '\0')
+      {
+        if(response[b] == ';')
+        {
+          if(response[b+1] == '\0')
+          {
+            printf(" %s", NULL);
+            break;
+          }
+          else
+          {
+            printf(" ");
+          }
+        }
+        else
+        {
+          printf("%c", response[b]);
+        }
+        b++;
+      }
+      printf("\n");
       send(clientSock, response, 256, 0);
       free(response);
       sem_post(&sem);
@@ -434,8 +552,29 @@ void serverFunction(void* args)
       strcpy(response, "UC;");
       strcat(response, buffer);
       strcat(response, "\0");
-      printf("Sending response to client at %s:%d", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
-      printf(", %s\n", response);
+      printf("Sending response to client at %s:%d, ", inet_ntoa(clientAddress.sin_addr), (int) ntohs(clientAddress.sin_port));
+      int b = 0;
+      while(response[b] != '\0')
+      {
+        if(response[b] == ';')
+        {
+          if(response[b+1] == '\0')
+          {
+            printf(" %s", NULL);
+            break;
+          }
+          else
+          {
+            printf(" ");
+          }
+        }
+        else
+        {
+          printf("%c", response[b]);
+        }
+        b++;
+      }
+      printf("\n");
       send(clientSock, response, 256, 0);
       free(response);
     }
