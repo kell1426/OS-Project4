@@ -33,7 +33,7 @@ char* returnWinner(node_t* n, char* command);
 char* countVotes(node_t* n, char* command);
 void openPolls(node_t* n, node_t* node);
 void addVotes(node_t* n, char* command);
-int removeVotes(node_t* n, char* command);
+char* removeVotes(node_t* n, char* command);
 void closePolls(node_t* n, node_t* node);
 void aggregateVotes(node_t* n, node_t* root);
 
@@ -436,11 +436,12 @@ void serverFunction(void* args)
         }
         else
         {
-          int illegal = removeVotes(node, strings[2]);
-          if(illegal == -1)
+          char *ok = calloc(20, 1);
+          ok = removeVotes(node, strings[2]);
+          if(strcmp(ok, "OK") != 0)
           {
             strcpy(response, "IS;");
-            strcat(response, node->name);
+            strcat(response, ok);
             strcat(response, "\0");
           }
           else
@@ -728,9 +729,10 @@ void addVotes(node_t* n, char* command)
   return;
 }
 
-int removeVotes(node_t* n, char* command)
+char* removeVotes(node_t* n, char* command)
 {
   char** strings;
+  char* IS = calloc(20, 1);
   int tokens = makeargv(command, ",", &strings);
   int i;
   for(i = 0; i < tokens; i++)
@@ -752,12 +754,14 @@ int removeVotes(node_t* n, char* command)
     {
       if(n->CandidatesVotes[j] < atoi(strings2[1]))
       {
-        return -1;
+        strcpy(IS, strings2[0]);
+        return IS;
       }
     }
     else
     {
-      return -1;
+      strcpy(IS, strings2[0]);
+      return IS;
     }
   }
   for(i = 0; i < tokens; i++)
@@ -780,7 +784,9 @@ int removeVotes(node_t* n, char* command)
       n->Candidates[j] = calloc(256, 1);
     }
   }
-  return 0;
+  char* ok = calloc(20, 1);
+  ok = "OK";
+  return ok;
 }
 
 void closePolls(node_t* n, node_t* node)
@@ -797,8 +803,6 @@ void closePolls(node_t* n, node_t* node)
   }
   return;
 }
-
-
 
 int main(int argc, char **argv){
   struct node* mainnodes=(struct node*)malloc(sizeof(struct node)*MAX_NODES);
