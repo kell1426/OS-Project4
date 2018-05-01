@@ -32,10 +32,9 @@ void parseInputLine(char *buf, node_t* n, int line);
 char* returnWinner(node_t* n, char* command);
 char* countVotes(node_t* n, char* command);
 void openPolls(node_t* n, node_t* node);
-void addVotes(node_t* n, char* command);
-char* removeVotes(node_t* n, char* command);
+void addVotes(node_t* n, char* command, node_t* root);
+char* removeVotes(node_t* n, char* command, node_t* root);
 void closePolls(node_t* n, node_t* node);
-void aggregateVotes(node_t* n, node_t* root);
 
 //Function parseInputLine
 //Takes in one line of the file, the nodes, and the line number.
@@ -106,60 +105,6 @@ void DAGCreator(node_t* n, char *filename)
       parseInputLine(buf, n, line);			//Call parseInputLine on this line.
       line++;
     }
-  }
-}
-
-//Function aggregateVotes
-//Takes in a node and the root node
-//Called during the Return_Winner function call
-//Starts at the root node and recursivley calls itself
-//down to each leaf node. Each call will then add its
-//votes into its parent node. The votes are aggregated
-//all the way back up to the top.
-void aggregateVotes(node_t* node, node_t* root)
-{
-  if(node->num_children > 0)
-  {
-    int i;
-    for(i = 0; i < node->num_children; i++)
-    {
-      node_t* child = findnode(root, node->childName[i]);
-      aggregateVotes(child, root);
-    }
-  }
-  if(node->id == 0)
-  {
-    return;
-  }
-  else
-  {
-    node_t* parent = findnode(root, node->parentName);
-    int i = 0;
-    while(node->Candidates[i][0] != 0)
-    {
-      int j = 0;
-      int match = 0;
-      while(parent->Candidates[j][0] != 0)
-      {
-        if(strcmp(node->Candidates[i], parent->Candidates[j]) == 0)
-        {
-          match = 1;
-          break;
-        }
-        j++;
-      }
-      if(match == 1)
-      {
-        parent->CandidatesVotes[j] += node->CandidatesVotes[i];
-      }
-      else
-      {
-        strcpy(parent->Candidates[j], node->Candidates[i]);
-        parent->CandidatesVotes[j] = node->CandidatesVotes[i];
-      }
-      i++;
-    }
-    return;
   }
 }
 
@@ -387,7 +332,7 @@ void serverFunction(void* args)
         }
         else
         {
-          addVotes(node, strings[2]);
+          addVotes(node, strings[2], n);
           strcpy(response, "SC;\0");
         }
       }
@@ -462,7 +407,7 @@ void serverFunction(void* args)
         else
         {
           char *ok = calloc(20, 1);
-          ok = removeVotes(node, strings[2]);
+          ok = removeVotes(node, strings[2], n);
           if(strcmp(ok, "OK") != 0)
           {
             strcpy(response, "IS;");
@@ -612,8 +557,7 @@ void serverFunction(void* args)
 
 //Function returnWinner
 //Takes in the root node and the command
-//Makes sure the polls are closed and then calls
-//aggregateVotes. After this finds the candidate with
+//Makes sure the polls are closed. After this finds the candidate with
 //the highest number of votes in the root node.
 //Returns the winning candidate.
 char* returnWinner(node_t* n, char* command)
@@ -632,9 +576,6 @@ char* returnWinner(node_t* n, char* command)
     }
     i++;
   }
-  //printf("Entering recursion");
-  aggregateVotes(n, n);
-  //printf("Exited recursion");
   int highestVotes = 0;
   char* winner = calloc(256, 1);
   i = 1;
@@ -742,8 +683,8 @@ void openPolls(node_t* n, node_t* node)
 //Goes through each candidate in the command line
 //and checks if already in the node. If so, add the votes to
 //this candidate. If not, add the candidate and the votes to a new
-//spot in the nodes candidate variables.
-void addVotes(node_t* n, char* command)
+//spot in the nodes candidate variables. Operates recursivley up the tree of nodes.
+void addVotes(node_t* n, char* command, node_t* root)
 {
   char** strings;
   int tokens = makeargv(command, ",", &strings);
@@ -773,6 +714,11 @@ void addVotes(node_t* n, char* command)
         n->CandidatesVotes[j] = atoi(strings2[1]);
     }
   }
+  if(n->parentName[0] != 0)
+  {
+    node_t* parent = findnode(root, n->parentName);
+    addVotes(parent, command, root);
+  }
   return;
 }
 
@@ -781,8 +727,8 @@ void addVotes(node_t* n, char* command)
 //If the candidate is not in the node or subtracting the votes
 //would result in negative votes, returns a Illegal Subtraction error.
 //Otherwise it returns an ok message indicating succesful removal
-//of the votes.
-char* removeVotes(node_t* n, char* command)
+//of the votes. Operates recursivley up the tree of nodes.
+char* removeVotes(node_t* n, char* command, node_t* root)
 {
   char** strings;
   char* IS = calloc(20, 1);
@@ -836,6 +782,11 @@ char* removeVotes(node_t* n, char* command)
       free(n->Candidates[j]);
       n->Candidates[j] = calloc(256, 1);
     }
+  }
+  if(n->parentName[0] != 0)
+  {
+    node_t* parent = findnode(root, n->parentName);
+    addVotes(parent, command, root);
   }
   char* ok = calloc(20, 1);
   ok = "OK";
